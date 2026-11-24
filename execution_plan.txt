@@ -1,0 +1,68 @@
+== Physical Plan ==
+AdaptiveSparkPlan (10)
++- == Initial Plan ==
+   PhotonResultStage (9)
+   +- PhotonColumnarToRow (8)
+      +- PhotonGroupingAgg (7)
+         +- PhotonShuffleExchangeSource (6)
+            +- PhotonShuffleMapStage (5)
+               +- PhotonShuffleExchangeSink (4)
+                  +- PhotonGroupingAgg (3)
+                     +- PhotonProject (2)
+                        +- PhotonScan parquet  (1)
+
+
+(1) PhotonScan parquet 
+Output [5]: [trip_distance#16936, total_amount#16941, pickup_borough#16946, pickup_year#16948, pickup_month#16949]
+DictionaryFilters: [(trip_distance#16936 > 2.0)]
+Location: InMemoryFileIndex [dbfs:/Volumes/workspace/default/nyc_taxi/outputs/cleaned_trips]
+PartitionFilters: [isnotnull(pickup_year#16948), isnotnull(pickup_month#16949), (pickup_year#16948 = 2024), (pickup_month#16949 = 1)]
+ReadSchema: struct<trip_distance:double,total_amount:double,pickup_borough:string>
+RequiredDataFilters: [isnotnull(trip_distance#16936), (trip_distance#16936 > 2.0)]
+
+(2) PhotonProject
+Input [5]: [trip_distance#16936, total_amount#16941, pickup_borough#16946, pickup_year#16948, pickup_month#16949]
+Arguments: [total_amount#16941, pickup_borough#16946]
+
+(3) PhotonGroupingAgg
+Input [2]: [total_amount#16941, pickup_borough#16946]
+Arguments: [pickup_borough#16946], [partial_count(1) AS count#16957L, partial_avg(total_amount#16941) AS (sum#16960, count#16961L)], [count#16956L, sum#16958, count#16959L], [pickup_borough#16946, count#16957L, sum#16960, count#16961L], false
+
+(4) PhotonShuffleExchangeSink
+Input [4]: [pickup_borough#16946, count#16957L, sum#16960, count#16961L]
+Arguments: hashpartitioning(pickup_borough#16946, 1024)
+
+(5) PhotonShuffleMapStage
+Input [4]: [pickup_borough#16946, count#16957L, sum#16960, count#16961L]
+Arguments: ENSURE_REQUIREMENTS, [id=#21215]
+
+(6) PhotonShuffleExchangeSource
+Input [4]: [pickup_borough#16946, count#16957L, sum#16960, count#16961L]
+Arguments: false
+
+(7) PhotonGroupingAgg
+Input [4]: [pickup_borough#16946, count#16957L, sum#16960, count#16961L]
+Arguments: [pickup_borough#16946], [finalmerge_count(merge count#16957L) AS count(1)#16954L, finalmerge_avg(merge sum#16960, count#16961L) AS avg(total_amount)#16955], [count(1)#16954L, avg(total_amount)#16955], [pickup_borough#16946, count(1)#16954L AS trip_count#16950L, avg(total_amount)#16955 AS avg_total_amount#16951], true
+
+(8) PhotonColumnarToRow
+Input [3]: [pickup_borough#16946, trip_count#16950L, avg_total_amount#16951]
+
+(9) PhotonResultStage
+Input [3]: [pickup_borough#16946, trip_count#16950L, avg_total_amount#16951]
+
+(10) AdaptiveSparkPlan
+Output [3]: [pickup_borough#16946, trip_count#16950L, avg_total_amount#16951]
+Arguments: isFinalPlan=false
+
+
+== Photon Explanation ==
+The query is fully supported by Photon.
+Query completed in 1.11 seconds
+Row(pickup_borough='Brooklyn', trip_count=12532, avg_total_amount=37.942357963613375)
+Row(pickup_borough='Bronx', trip_count=4007, avg_total_amount=39.738375343149805)
+Row(pickup_borough='Manhattan', trip_count=862765, avg_total_amount=33.47421177257056)
+Row(pickup_borough='Queens', trip_count=243168, avg_total_amount=74.2022911320783)
+Row(pickup_borough='N/A', trip_count=228, avg_total_amount=99.04464912280707)
+Row(pickup_borough='Unknown', trip_count=3755, avg_total_amount=42.100924101198345)
+Row(pickup_borough='Staten Island', trip_count=11, avg_total_amount=115.67909090909089)
+Row(pickup_borough='EWR', trip_count=11, avg_total_amount=110.66636363636363)
